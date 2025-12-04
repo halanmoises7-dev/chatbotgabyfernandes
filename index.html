@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Interativo - Gaby Fernandes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Variáveis CSS para Cores e Fontes --- */
+        :root {
+            --primary-color: #c511c5;
+            --primary-color-hover: #970f97;
+            --whatsapp-color: #25d366;
+            --whatsapp-color-hover: #1ebe5b;
+            --error-color: #d32f2f;
+            --reset-color: #007bff;
+            --reset-color-hover: #0069d9;
+            --font-size-base: 15px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            font-family: 'Montserrat', sans-serif;
+            background: #f5f5f5; display: flex;
+            justify-content: center; align-items: center;
+        }
+        .chat-container {
+            width: 100%; max-width: 450px; 
+            height: 100dvh;
+            background: #fff; border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .chat-header {
+            background: var(--primary-color); color: white; padding: 15px;
+            text-align: center; font-weight: 600; font-size: 18px;
+        }
+        .chat-body {
+            flex: 1; padding: 15px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 10px;
+            scroll-behavior: smooth;
+        }
+        .message {
+            max-width: 85%; padding: 10px 14px; border-radius: 18px;
+            line-height: 1.4; font-size: var(--font-size-base); word-wrap: break-word;
+        }
+        .bot { background: #f0f0f0; align-self: flex-start; border-bottom-left-radius: 0; }
+        .user { background: var(--primary-color); color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+        .options-message {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+        }
+        .option-btn {
+            flex: 1 1 45%; background: var(--primary-color); color: white;
+            border: none; border-radius: 10px; padding: 10px 8px;
+            font-size: 13px; cursor: pointer; 
+            transition: background 0.2s, transform 0.1s;
+            text-align: center;
+        }
+        .option-btn:hover { background: var(--primary-color-hover); }
+        .option-btn:active { transform: scale(0.97); }
+        .end-btn { background: var(--error-color); }
+        .end-btn:hover { background: #b71c1c; }
+        .reset-btn { background: var(--reset-color); }
+        .reset-btn:hover { background: var(--reset-color-hover); }
+
+        /* NOVO: Estilo para o botão de Reiniciar Completo */
+        .restart-btn {
+            background: #4CAF50; 
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .restart-btn:hover { background: #45a049; }
+        
+        .input-section {
+            flex-shrink: 0; background: #fff; border-top: 1px solid #eee;
+            display: flex; flex-direction: column; align-items: center; padding: 10px;
+        }
+        .input-bar {
+            display: flex; align-items: center; width: 100%;
+        }
+        .input-bar input {
+            flex: 1; padding: 10px 12px; border-radius: 12px;
+            border: 1px solid #ddd; font-size: 14px; outline: none;
+        }
+        .input-bar input:disabled { background: #f9f9f9; color: #888; }
+        .send-btn {
+            margin-left: 8px; background: var(--primary-color); border: none;
+            color: white; border-radius: 12px; padding: 10px 14px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .send-btn:hover { background: var(--primary-color-hover); }
+        .send-btn:active { transform: scale(0.95); }
+        .send-btn:disabled { opacity: 0.5; cursor: default; }
+        .send-btn svg { width: 18px; height: 18px; fill: white; }
+        .footer {
+            font-size: 12px; color: #888; margin-top: 6px; text-align: center;
+        }
+        
+        /* CORREÇÃO APLICADA AQUI */
+        .footer a {
+            color: inherit; /* O link no rodapé herda a cor do .footer (cinza: #888) */
+        }
+        /* FIM DA CORREÇÃO */
+
+        .typing { font-style: italic; color: #777; }
+        .fade-in { opacity: 0; animation: fadeIn 0.5s forwards; }
+        @keyframes fadeIn { to { opacity: 1; } }
+        a { color: var(--primary-color); text-decoration: none; }
+        .user a { color: white; }
+
+        /* Estilos do Bloco de Confirmação Final */
+        .whatsapp-block {
+            display: block;
+            background: #f7f7f7;
+            padding: 10px;
+            border-radius: 12px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .whatsapp-block p {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .whatsapp-btn {
+            display: inline-block;
+            background: var(--whatsapp-color);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .whatsapp-btn:hover { background: var(--whatsapp-color-hover); }
+
+        /* Estilo para container de vídeo */
+        .video-container {
+            width: 100%;
+            margin-top: 5px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+        .video-container video {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" role="main">
+        <div class="chat-header">Atendimento Gaby Fernandes</div>
+        <div class="chat-body" id="chatBody">
+            <div class="message bot fade-in">Olá! 👋 Sou o assistente da Gaby Fernandes. Qual é o seu nome?</div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-bar">
+                <input type="text" id="userInput" placeholder="Digite seu nome..." aria-label="Campo de entrada de texto" />
+                <button class="send-btn" aria-label="Enviar Mensagem">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="footer">Desenvolvido por <a href="https://www.instagram.com/hm.midiaweb/" target="_blank"><strong>HM Mídia & Web</strong></a></div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        // --- 1. Variáveis de Estado e Referências ao DOM ---
+        const chatBody = document.getElementById('chatBody');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.querySelector('.send-btn');
+        
+        // ** SEU NÚMERO DE TELEFONE DO WHATSAPP ** (Formato: 5521999999999)
+        const WHATSAPP_NUMBER = '5521986243813'; 
+
+        let userName = '';
+        let chatActive = true;
+        let hasSelectedOption = false;
+
+        const allOptions = ['Massagem Premium', 'Massagem Top', 'Massagem Básica', 'Observações', 'Anúncio'];
+        let remainingOptions = [...allOptions];
+
+        // Variáveis de Horário de Atendimento
+        const START_HOUR = 9; // 9:00
+        const END_HOUR = 18; // 18:00
+        const EXPEDIENT_INFO = `${START_HOUR}:00h às ${END_HOUR}:00h`;
+
+        // Variáveis de Estado para o Fluxo de Agendamento
+        // 0: Menu de opções (Input Desabilitado)
+        // 3: Aguardando Horário de Agendamento (Input Habilitado)
+        let appointmentState = 0; 
+        let requestedService = '';
+        let requestedDate = '';
+        let requestedTime = '';
+        
+        // --- 2. Funções de Utilidade e DOM ---
+
+        function addMessage(sender, text) {
+            const msg = document.createElement('div');
+            msg.classList.add('message', sender, 'fade-in');
+            msg.textContent = text;
+            chatBody.appendChild(msg);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+        
+        // MODIFICAÇÃO CHAVE: Define o placeholder de acordo com o estado
+        function toggleInput(state, placeholder = 'Digite uma mensagem...') {
+            userInput.disabled = !state;
+            sendButton.disabled = !state;
+            
+            // NOVO: Trava o input se o estado não for de espera por texto
+            if (userName && appointmentState === 0) {
+                 userInput.placeholder = 'Escolha uma opção acima...';
+                 userInput.disabled = true;
+                 sendButton.disabled = true;
+            } else {
+                 userInput.placeholder = state ? placeholder : 'Aguarde a resposta do assistente...';
+            }
+        }
+
+        function addBotResponse(text) {
+            const msg = document.createElement('div');
+            msg.classList.add('message', 'bot', 'fade-in');
+            msg.innerHTML = text; 
+            chatBody.appendChild(msg);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function addOptionsMessage() {
+            const optionsContainer = document.createElement('div');
+            optionsContainer.classList.add('message', 'bot', 'fade-in');
+
+            let optionsHTML = '';
+            
+            if (remainingOptions.length > 0) {
+                optionsHTML += 'Escolha uma opção abaixo:';
+                optionsHTML += `<div class="options-message">`;
+                remainingOptions.forEach(option => {
+                    let icon = '';
+                    switch(option) {
+                        case 'Massagem Premium': icon = '🥇'; break;
+                        case 'Massagem Top': icon = '🥈'; break;
+                        case 'Massagem Básica': icon = '🥉'; break;
+                        case 'Observações': icon = '⚠️'; break;
+                        case 'Anúncio': icon = '🌐'; break;
+                    }
+                    optionsHTML += `<button class="option-btn" data-action="select" data-option="${option}" aria-label="Opção ${option}">${icon} ${option.charAt(0).toUpperCase() + option.slice(1)}</button>`;
+                });
+
+                if (hasSelectedOption) {
+                    optionsHTML += `<button class="option-btn end-btn" data-action="end" aria-label="Encerrar Conversa">Encerrar ChatBot</button>`;
+                }
+
+                optionsHTML += `</div>`;
+            } else {
+                optionsHTML += `
+                    Todas as opções foram apresentadas.<br>O que deseja fazer agora?
+                    <div class="options-message">
+                        <button class="option-btn reset-btn" data-action="reset">🔄 Voltar ao Menu</button>
+                        <button class="option-btn end-btn" data-action="end">Encerrar ChatBot</button>
+                    </div>
+                `;
+            }
+
+            optionsContainer.innerHTML = optionsHTML;
+            chatBody.appendChild(optionsContainer);
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // NOVO: Garante que o input seja desabilitado quando as opções aparecem (appointmentState === 0)
+            toggleInput(false); 
+        }
+
+        function botTyping(text, delayPerChar = 10, callback = null) {
+            toggleInput(false);
+            
+            const typing = document.createElement('div');
+            typing.classList.add('message', 'bot', 'typing');
+            typing.textContent = 'Digitando...';
+            chatBody.appendChild(typing);
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            const minDelay = 700;
+            const typingTime = Math.max(text.length * delayPerChar, minDelay);
+
+            setTimeout(() => {
+                typing.remove();
+                addBotResponse(text); 
+                
+                if (chatActive) {
+                    // Libera o input somente se estiver esperando o nome ou o horário (appointmentState > 0)
+                    if (!userName) {
+                        toggleInput(true, 'Digite seu nome...');
+                    } else if (appointmentState > 0) {
+                        toggleInput(true, 'Digite o horário exato (ex: 14:00)...');
+                    } else if (appointmentState === 0) {
+                        // Se for o menu (appointmentState === 0), o input permanece travado
+                        toggleInput(false);
+                    }
+                }
+
+                if (callback) callback();
+            }, typingTime);
+        }
+        
+        // --- 3. Funções de Validação e Envio ---
+
+        function isValidTimeInExpedient(input) {
+            const timeInput = input.includes(':') ? input : input + ':00'; 
+            const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/; 
+            
+            if (!timeRegex.test(timeInput)) return false;
+
+            const [hours, minutes] = timeInput.split(':').map(n => parseInt(n));
+
+            return hours >= START_HOUR && hours < END_HOUR;
+        }
+
+        function startTodayScheduling(service) {
+            requestedService = service.charAt(0).toUpperCase() + service.slice(1);
+            requestedDate = new Date().toLocaleDateString('pt-BR'); 
+            
+            appointmentState = 3; 
+
+            handleAppointmentFlow(''); 
+        }
+
+        function createWhatsappLink() {
+            const message = `
+Olá Gaby!
+
+*SOLICITAÇÃO DE AGENDAMENTO (Via ChatBot)*
+*Cliente:* ${userName}
+*Serviço:* ${requestedService}
+*Dia:* ${requestedDate} (HOJE)
+*Horário Sugerido:* ${requestedTime}
+
+*Aguardando sua confirmação de disponibilidade.*
+            `.trim(); 
+            
+            const encodedMessage = encodeURIComponent(message);
+
+            return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+        }
+
+
+        // --- 4. Lógica do Fluxo de Agendamento ---
+
+        function handleAppointmentFlow(input) {
+            if (input && appointmentState === 3) { 
+                addMessage('user', input);
+            }
+            userInput.value = '';
+            toggleInput(false);
+            
+            if (appointmentState === 3) {
+                const timeInput = input.trim(); 
+
+                if (timeInput === '') {
+                    let responseInfo = `Certo! Para <strong>${requestedService}</strong> hoje (${requestedDate}), nosso expediente é de <strong>${EXPEDIENT_INFO}</strong>.`;
+                    responseInfo += `<br>Por favor, <strong>digite o horário exato</strong> que você gostaria de ser atendido (Ex: 10:00 ou 16:30).`;
+                    botTyping(responseInfo, 10, () => {
+                        toggleInput(true, 'Digite o horário desejado (Ex: 14:00)...');
+                    });
+                    return;
+                }
+
+                if (!isValidTimeInExpedient(timeInput)) {
+                    let responseError = `Horário inválido. Por favor, digite um horário no formato <strong>HH:MM</strong> dentro do nosso expediente (<strong>${EXPEDIENT_INFO}</strong>).`;
+                    botTyping(responseError, 10, () => { toggleInput(true, 'Digite o horário exato (ex: 14:00)...'); });
+                    return;
+                }
+                
+                requestedTime = timeInput; 
+                
+                // FINALIZAÇÃO DO FLUXO
+                let responseFinal = `✅ <strong>Solicitação de Agendamento Finalizada!</strong>`;
+                responseFinal += `<br>Seu horário sugerido para <strong>${requestedService}</strong> hoje (${requestedDate}) é <strong>${requestedTime}</strong>.`;
+                responseFinal += `<br>Para que eu possa <strong>confirmar sua reserva</strong>, clique no botão abaixo para me enviar os dados pelo WhatsApp.`;
+
+                appointmentState = 0; 
+
+                botTyping(responseFinal, 10, () => {
+                    const finalBlock = document.createElement('div');
+                    finalBlock.classList.add('message', 'bot', 'fade-in');
+                    
+                    finalBlock.innerHTML = `
+                        <div class="whatsapp-block">
+                            <p>Sua solicitação de agendamento está pronta para ser enviada!</p>
+                            <a href="${createWhatsappLink()}" target="_blank" class="whatsapp-btn">
+                                📲 Enviar Solicitação para WhatsApp
+                            </a>
+                        </div>
+                    `;
+                    chatBody.appendChild(finalBlock);
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                    
+                    setTimeout(() => {
+                        remainingOptions = [...allOptions];
+                        addOptionsMessage();
+                    }, 500);
+                });
+            }
+        }
+
+        // --- 5. Funções de Controle do Chat ---
+
+        function sendMessage() {
+            const text = userInput.value.trim();
+            // NOVO: Adicionamos a verificação para bloquear a digitação quando o campo está desabilitado
+            if (text === '' || !chatActive || userInput.disabled) return;
+
+            if (!userName) {
+                // Validação de nome de usuário
+                if (text.length < 2) {
+                    botTyping('Por favor, digite um nome válido e com no mínimo 2 caracteres.', 10, () => {
+                        toggleInput(true, 'Digite seu nome...');
+                    });
+                    userInput.value = '';
+                    return;
+                }
+
+                userName = text;
+                addMessage('user', userName);
+                userInput.value = '';
+                userInput.placeholder = 'Digite uma mensagem...'; 
+                botTyping(`Seja bem-vindo(a), ${userName}! Estou aqui para apresentar meus serviços.`, 10, () => {
+                    addOptionsMessage();
+                });
+                return;
+            }
+
+            if (appointmentState > 0) {
+                handleAppointmentFlow(text);
+                return;
+            }
+
+            // CÓDIGO REMOVIDO: A mensagem aleatória foi removida daqui, pois o input estará travado neste ponto.
+            // O bot não deve responder a texto se estiver esperando uma escolha de botão.
+
+            addMessage('user', text);
+            userInput.value = '';
+            
+            // Se o usuário conseguiu digitar algo aqui, é um erro de fluxo, mas garantimos o travamento
+            // Caso contrário, ele seria pego pela checagem de `userInput.disabled` no início da função.
+            botTyping(`Por favor, utilize os botões de opção para navegar ou clique em 'Encerrar ChatBot'.`, 10, () => {
+                addOptionsMessage(); 
+            });
+        }
+
+        function selectOption(option) {
+            if (!chatActive) return;
+            if (!allOptions.includes(option)) return; 
+            
+            hasSelectedOption = true;
+            addMessage('user', option.charAt(0).toUpperCase() + option.slice(1));
+
+            let response = '';
+            
+            switch(option) {
+                case 'Massagem Premium':
+                    response = `🥇 <strong>Massagem Premium</strong>: Mix de massagens relaxante, tântrica, lingam, nuru com banho de língua, finalização oral e vaginal por 150 Reais.`;
+                    break;
+                case 'Massagem Top':
+                    response = `🥈 <strong>Massagem Top</strong>: Mix de massagens relaxante, tântrica e lingam com finalização oral por 120 Reais.`;
+                    break;
+                case 'Massagem Básica':
+                    response = `🥉 <strong>Massagem Básica</strong>: Mix de massagens relaxante, tântrica e lingam com finalização manual por 90 Reais.`;
+                    break;
+                case 'Observações':
+                    response = `⚠️ <strong>Observações</strong>: Não faço anal, só atendo em meu local de segunda a sábado das 11h às 20h.`;
+                    break;
+                case 'Anúncio':
+                    response = `🌐 <strong>Anúncio</strong>:<br>
+                                     <a href="https://www.photoacompanhantes.com/acompanhantes/rio-de-janeiro/centro/mix-de-massagens-com-nuru-e-banho-de-lingua-imperdivel-id-u2wyv" target="_blank">Meu Anúncio no PhotoAcompanhantes</a><br>`;
+                    break;
+            }
+
+            remainingOptions = remainingOptions.filter(opt => opt !== option);
+
+            // --- AQUI ESTÁ A LÓGICA MODIFICADA PARA VÍDEO E DEPOIS AGENDAMENTO ---
+            botTyping(response, 10, () => {
+                const isService = ['Massagem Premium', 'Massagem Top', 'Massagem Básica'].includes(option);
+
+                if (isService) {
+                    
+                    // --- CONFIGURAÇÃO DOS VÍDEOS AQUI ---
+                    // Substitua as URLs abaixo pelos links dos seus arquivos de vídeo (.mp4)
+                    let videoUrl = '';
+                    switch(option) {
+                        case 'Massagem Premium': 
+                            videoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4'; // Exemplo
+                            break;
+                        case 'Massagem Top': 
+                            videoUrl = 'https://www.w3schools.com/html/movie.mp4'; // Exemplo
+                            break;
+                        case 'Massagem Básica': 
+                            videoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4'; // Exemplo
+                            break;
+                    }
+
+                    // 1. Criar e Exibir o Bloco de Vídeo
+                    const videoBlock = document.createElement('div');
+                    videoBlock.classList.add('message', 'bot', 'fade-in');
+                    
+                    // Estrutura do vídeo HTML5
+                    videoBlock.innerHTML = `
+                        <div class="video-container">
+                            <video controls>
+                                <source src="${videoUrl}" type="video/mp4">
+                                Seu navegador não suporta a tag de vídeo.
+                            </video>
+                        </div>
+                        <small style="display:block; margin-top:5px; color:#666;">👆 Assista ao vídeo de demonstração.</small>
+                    `;
+                    
+                    chatBody.appendChild(videoBlock);
+                    chatBody.scrollTop = chatBody.scrollHeight;
+
+                    // 2. Aguardar um momento e então mostrar o botão de agendamento
+                    setTimeout(() => {
+                        const agendamentoBlock = document.createElement('div');
+                        agendamentoBlock.classList.add('message', 'bot', 'fade-in');
+                        
+                        const serviceLabel = option.charAt(0).toUpperCase() + option.slice(1);
+                        
+                        agendamentoBlock.innerHTML = `
+                            <p>Se você gostou de <strong>${serviceLabel}</strong>, inicie uma solicitação de agendamento para <strong>HOJE</strong>!</p>
+                            <div class="options-message">
+                                <button class="option-btn" data-action="schedule-today" data-service="${option}">📅 Solicitar Agendamento</button>
+                            </div>
+                        `;
+                        chatBody.appendChild(agendamentoBlock);
+                        chatBody.scrollTop = chatBody.scrollHeight;
+
+                        // 3. Mostrar menu de opções restantes
+                        setTimeout(() => addOptionsMessage(), 500);
+
+                    }, 1200); // Tempo (em ms) para o usuário perceber o vídeo antes de aparecer o botão
+
+                } else {
+                    // Se não for serviço (ex: redes sociais), só mostra o menu
+                    setTimeout(() => addOptionsMessage(), 300);
+                }
+            });
+        }
+
+        function resetMenu() {
+            if (!chatActive) return;
+            remainingOptions = [...allOptions];
+            addMessage('user', '🔄 Voltar ao Menu');
+            botTyping('As opções foram restauradas. Escolha uma delas abaixo:', 10, () => addOptionsMessage());
+        }
+
+        /**
+         * Função para reiniciar o chat completamente (estado e interface)
+         */
+        function fullReset() {
+            // 1. Limpa o histórico visual
+            chatBody.innerHTML = '';
+            
+            // 2. Reseta todas as variáveis de estado
+            userName = '';
+            appointmentState = 0;
+            chatActive = true;
+            hasSelectedOption = false;
+            remainingOptions = [...allOptions];
+            
+            // 3. Inicia a conversa
+            addBotResponse('Olá! 👋 Sou o assistente da Gaby Fernandes. Qual é o seu nome?');
+            toggleInput(true, 'Digite seu nome...');
+        }
+
+
+        /**
+         * Função para encerrar o chat e apresentar o botão de reinício
+         */
+        function endChat() {
+            if (!chatActive) return;
+            addMessage('user', 'Encerrar ChatBot');
+            chatActive = false;
+            
+            toggleInput(false, 'Chat encerrado.'); 
+
+            botTyping(`O chat foi encerrado. Até logo, ${userName}! 👋`, 10, () => {
+                // Adiciona o bloco com o botão de reiniciar
+                const restartBlock = document.createElement('div');
+                restartBlock.classList.add('message', 'bot', 'fade-in');
+                
+                restartBlock.innerHTML = `
+                    <p>Se precisar de algo mais, clique no botão abaixo para começar uma nova conversa.</p>
+                    <button class="restart-btn" data-action="full-reset">👋 Reiniciar Conversa</button>
+                `;
+                chatBody.appendChild(restartBlock);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            });
+        }
+
+        // --- 6. Event Listeners (Delegation) ---
+
+        chatBody.addEventListener('click', (e) => {
+            const target = e.target.closest('.option-btn, .restart-btn');
+            if (!target) return;
+
+            const action = target.getAttribute('data-action');
+            const option = target.getAttribute('data-option');
+            const service = target.getAttribute('data-service');
+            
+            if (appointmentState > 0 && action !== 'end' && action !== 'full-reset') return; 
+
+            if (action === 'select' && option) {
+                selectOption(option);
+            } else if (action === 'schedule-today' && service) {
+                toggleInput(false); 
+                startTodayScheduling(service);
+            } else if (action === 'end') {
+                endChat();
+            } else if (action === 'reset') {
+                resetMenu();
+            } else if (action === 'full-reset') {
+                fullReset();
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+        
+        userInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // 7. Inicialização
+        toggleInput(true, 'Digite seu nome...');
+
+    })(); 
+    </script>
+</body>
+</html>
