@@ -165,13 +165,12 @@
     <div class="chat-container" role="main">
         <div class="chat-header">Atendimento Gaby Fernandes</div>
         <div class="chat-body" id="chatBody">
-            <div class="message bot fade-in">Olá! 👋 Sou o assistente da Gaby Fernandes. Qual é o seu nome?</div>
-        </div>
+            </div>
 
         <div class="input-section">
             <div class="input-bar">
-                <input type="text" id="userInput" placeholder="Digite seu nome..." aria-label="Campo de entrada de texto" />
-                <button class="send-btn" aria-label="Enviar Mensagem">
+                <input type="text" id="userInput" placeholder="Escolha uma opção acima..." aria-label="Campo de entrada de texto" disabled />
+                <button class="send-btn" aria-label="Enviar Mensagem" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                         <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
                     </svg>
@@ -191,7 +190,8 @@
         // ** SEU NÚMERO DE TELEFONE DO WHATSAPP ** (Formato: 5521999999999)
         const WHATSAPP_NUMBER = '5521986243813'; 
 
-        let userName = '';
+        // ALTERAÇÃO: Nome de usuário definido por padrão, pulando a primeira etapa
+        let userName = 'Cliente';
         let chatActive = true;
         let hasSelectedOption = false;
 
@@ -223,11 +223,19 @@
         
         // MODIFICAÇÃO CHAVE: Define o placeholder de acordo com o estado
         function toggleInput(state, placeholder = 'Digite uma mensagem...') {
+            // Se o chat não estiver ativo, desabilita sempre
+            if (!chatActive) {
+                 userInput.disabled = true;
+                 sendButton.disabled = true;
+                 userInput.placeholder = 'Chat encerrado.';
+                 return;
+            }
+
             userInput.disabled = !state;
             sendButton.disabled = !state;
             
-            // NOVO: Trava o input se o estado não for de espera por texto
-            if (userName && appointmentState === 0) {
+            // NOVO: Trava o input se o estado não for de espera por texto (appointmentState === 0)
+            if (appointmentState === 0) {
                  userInput.placeholder = 'Escolha uma opção acima...';
                  userInput.disabled = true;
                  sendButton.disabled = true;
@@ -305,10 +313,8 @@
                 addBotResponse(text); 
                 
                 if (chatActive) {
-                    // Libera o input somente se estiver esperando o nome ou o horário (appointmentState > 0)
-                    if (!userName) {
-                        toggleInput(true, 'Digite seu nome...');
-                    } else if (appointmentState > 0) {
+                    // Libera o input somente se estiver esperando o horário (appointmentState === 3)
+                    if (appointmentState === 3) {
                         toggleInput(true, 'Digite o horário exato (ex: 14:00)...');
                     } else if (appointmentState === 0) {
                         // Se for o menu (appointmentState === 0), o input permanece travado
@@ -343,6 +349,7 @@
         }
 
         function createWhatsappLink() {
+            // Usa userName (que agora é 'Cliente' ou o nome, se fosse pedido)
             const message = `
 Olá Gaby!
 
@@ -424,42 +431,25 @@ Olá Gaby!
 
         function sendMessage() {
             const text = userInput.value.trim();
-            // NOVO: Adicionamos a verificação para bloquear a digitação quando o campo está desabilitado
+            // Adicionamos a verificação para bloquear a digitação quando o campo está desabilitado
             if (text === '' || !chatActive || userInput.disabled) return;
 
+            /* TRECHO REMOVIDO: Lógica para pegar o nome do usuário foi removida
             if (!userName) {
-                // Validação de nome de usuário
-                if (text.length < 2) {
-                    botTyping('Por favor, digite um nome válido e com no mínimo 2 caracteres.', 10, () => {
-                        toggleInput(true, 'Digite seu nome...');
-                    });
-                    userInput.value = '';
-                    return;
-                }
-
-                userName = text;
-                addMessage('user', userName);
-                userInput.value = '';
-                userInput.placeholder = 'Digite uma mensagem...'; 
-                botTyping(`Seja bem-vindo(a), ${userName}! Estou aqui para apresentar meus serviços.`, 10, () => {
-                    addOptionsMessage();
-                });
+                ...
                 return;
             }
+            */
 
             if (appointmentState > 0) {
                 handleAppointmentFlow(text);
                 return;
             }
 
-            // CÓDIGO REMOVIDO: A mensagem aleatória foi removida daqui, pois o input estará travado neste ponto.
-            // O bot não deve responder a texto se estiver esperando uma escolha de botão.
-
+            // Se o usuário conseguiu digitar algo aqui, é um erro de fluxo, mas garantimos o travamento
             addMessage('user', text);
             userInput.value = '';
             
-            // Se o usuário conseguiu digitar algo aqui, é um erro de fluxo, mas garantimos o travamento
-            // Caso contrário, ele seria pego pela checagem de `userInput.disabled` no início da função.
             botTyping(`Por favor, utilize os botões de opção para navegar ou clique em 'Encerrar ChatBot'.`, 10, () => {
                 addOptionsMessage(); 
             });
@@ -489,7 +479,7 @@ Olá Gaby!
                     break;
                 case 'Anúncio':
                     response = `🌐 <strong>Anúncio</strong>:<br>
-                                     <a href="https://www.photoacompanhantes.com/acompanhantes/rio-de-janeiro/centro/mix-de-massagens-com-nuru-e-banho-de-lingua-imperdivel-id-u2wyv" target="_blank">Meu Anúncio no PhotoAcompanhantes</a><br>`;
+                                    <a href="https://www.photoacompanhantes.com/acompanhantes/rio-de-janeiro/centro/mix-de-massagens-com-nuru-e-banho-de-lingua-imperdivel-id-u2wyv" target="_blank">Meu Anúncio no PhotoAcompanhantes</a><br>`;
                     break;
             }
 
@@ -577,15 +567,14 @@ Olá Gaby!
             chatBody.innerHTML = '';
             
             // 2. Reseta todas as variáveis de estado
-            userName = '';
+            userName = 'Cliente'; // Mantém o valor padrão
             appointmentState = 0;
             chatActive = true;
             hasSelectedOption = false;
             remainingOptions = [...allOptions];
             
             // 3. Inicia a conversa
-            addBotResponse('Olá! 👋 Sou o assistente da Gaby Fernandes. Qual é o seu nome?');
-            toggleInput(true, 'Digite seu nome...');
+            initializeChat();
         }
 
 
@@ -599,7 +588,7 @@ Olá Gaby!
             
             toggleInput(false, 'Chat encerrado.'); 
 
-            botTyping(`O chat foi encerrado. Até logo, ${userName}! 👋`, 10, () => {
+            botTyping(`O chat foi encerrado. Até logo! 👋`, 10, () => {
                 // Adiciona o bloco com o botão de reiniciar
                 const restartBlock = document.createElement('div');
                 restartBlock.classList.add('message', 'bot', 'fade-in');
@@ -645,8 +634,22 @@ Olá Gaby!
             if (e.key === 'Enter') sendMessage();
         });
 
+        /**
+         * NOVA FUNÇÃO: Inicia o chat sem perguntar o nome.
+         */
+        function initializeChat() {
+             // A mensagem inicial que você solicitou
+            const welcomeMessage = 'Seja bem-vindo(a) ao atendimento virtual da Gaby Fernandes! Estou aqui para apresentar meus serviços.';
+
+            // Exibe a mensagem de boas-vindas
+            botTyping(welcomeMessage, 10, () => {
+                // E logo após, exibe as opções
+                addOptionsMessage();
+            });
+        }
+
         // 7. Inicialização
-        toggleInput(true, 'Digite seu nome...');
+        initializeChat();
 
     })(); 
     </script>
